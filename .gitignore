@@ -2,3 +2,5 @@
 *.ipynb
 __pycache__/
 *.pyc
+*.db
+backend/files/seating_arrangement*.xlsx
