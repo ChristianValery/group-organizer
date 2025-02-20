@@ -15,6 +15,9 @@ The download endpoint accepts a session ID and retrieves the seating plan
 from the database. It writes the seating plan to an Excel file and returns
 it as a FileResponse.
 
+The delete endpoint accepts a session ID and deletes the seating arrangement
+Excel file from the `backend/files` directory.
+
 The application uses the `process_file` and `write_file` functions from the
 `utils.excel_handler` module to process the Excel files.
 
