@@ -207,3 +207,29 @@ async def download_seating(session_id: str) -> FileResponse:
     db.close()
 
     return FileResponse(path=file_path, filename=file_name)
+
+
+@app.delete("/delete/", response_model=Dict)
+async def delete_seating_file(session_id: str) -> Dict:
+    """
+    Deletes the seating arrangement Excel file from the backend/files directory
+    using the session ID. The database record is left intact.
+    """
+    db = SessionLocal()
+    session_record = db.query(SeatingSession).filter(
+        SeatingSession.session_id == session_id
+    ).first()
+    db.close()
+
+    if not session_record:
+        raise HTTPException(
+            status_code=404, detail="Seating arrangement not found.")
+
+    file_name = f"seating_arrangement_{session_id}.xlsx"
+    file_path = os.path.join("backend/files", file_name)
+
+    if not os.path.exists(file_path):
+        return {"status": False, "message": "Excel file not found in backend/files directory."}
+
+    safely_delete_file(file_path)
+    return {"status": True, "message": "Excel file deleted successfully."}
