@@ -17,11 +17,18 @@ To run the Streamlit app, use the following command:
 
 
 import io
+import os
 
 import pandas as pd
 import streamlit as st
 import requests
 from streamlit.components.v1 import html
+
+
+
+# Get the FastAPI base URL from the environment variable or use the default value
+FAST_API_BASE_URL = os.environ.get("FAST_API_BASE_URL", "http://localhost:8000")
+
 
 # Configure Streamlit page
 st.set_page_config(page_title='醐 Seating Arrangement Tool', layout='wide')
@@ -70,9 +77,6 @@ html(
     height=100,
 )
 
-# Cache the FastAPI base URL
-FAST_API_BASE_URL = "http://localhost:8000"
-
 
 def main():
     """
@@ -95,7 +99,7 @@ def main():
         - `compatible`: Pairs of compatible persons (two names separated by a colon `:`)
         - `incompatible`: Pairs of incompatible persons (two names separated by a slash `/`)
         """)
-        with open('backend/files/names.xlsx', 'rb') as f:
+        with open('files/names.xlsx', 'rb') as f:
             st.download_button(
                 label='⬇️ Download a Model File',
                 data=f,
