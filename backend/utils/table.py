@@ -7,7 +7,7 @@ Description:
 
 from typing import List
 
-from seat import Seat
+from utils.seat import Seat
 
 
 class Table:
