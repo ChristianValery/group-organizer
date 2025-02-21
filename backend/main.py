@@ -70,7 +70,7 @@ from utils.openspace import Openspace
 
 # Use a SQLite database for storing the seating arrangements
 # The database URL is a file path to the SQLite database
-DATABASE_URL = "sqlite:///backend/database/seating.db"
+DATABASE_URL = "sqlite:///database/seating.db"
 
 # SQLite requires a special flag for multithreading
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -199,7 +199,7 @@ async def download_seating(session_id: str) -> FileResponse:
             status_code=404, detail="No seating arrangement available.")
 
     file_name = f"seating_arrangement_{session_id}.xlsx"
-    file_path = os.path.join("backend/files", file_name)
+    file_path = os.path.join("files", file_name)
 
     # Generate the Excel file using the stored seating plan
     write_file(file_path, session_record.seating_plan)
@@ -229,7 +229,7 @@ async def delete_seating_file(session_id: str) -> Dict:
             status_code=404, detail="Seating arrangement not found.")
 
     file_name = f"seating_arrangement_{session_id}.xlsx"
-    file_path = os.path.join("backend/files", file_name)
+    file_path = os.path.join("files", file_name)
 
     if not os.path.exists(file_path):
         return {"status": False, "message": "Excel file not found in backend/files directory."}
