@@ -6,7 +6,8 @@ Description:
 
 from typing import List, Dict, Set
 from random import sample
-from backend.utils.table import Table
+
+from table import Table
 
 
 class Openspace:
