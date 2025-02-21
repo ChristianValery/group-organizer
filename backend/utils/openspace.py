@@ -7,7 +7,7 @@ Description:
 from typing import List, Dict, Set
 from random import sample
 
-from table import Table
+from utils.table import Table
 
 
 class Openspace:
