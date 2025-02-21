@@ -64,8 +64,8 @@ from sqlalchemy import create_engine, Column, String, LargeBinary, JSON, DateTim
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-from backend.utils.excel_handler import process_file, write_file
-from backend.utils.openspace import Openspace
+from utils.excel_handler import process_file, write_file
+from utils.openspace import Openspace
 
 
 # Use a SQLite database for storing the seating arrangements
