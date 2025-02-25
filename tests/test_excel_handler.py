@@ -13,7 +13,6 @@ import unittest
 import os
 import tempfile
 import pandas as pd
-import numpy as np
 
 from backend.utils.excel_handler import (
     is_excel_file,
