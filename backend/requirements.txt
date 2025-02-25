@@ -5,3 +5,4 @@ pandas==2.2.3
 SQLAlchemy==2.0.38
 uvicorn==0.34.0
 python-multipart==0.0.20
+ortools==9.12.4544
