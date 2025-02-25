@@ -44,9 +44,9 @@ The `download_seating` endpoint downloads the seating arrangement as an Excel
 file using the session ID. It retrieves the seating plan from the database,
 writes it to an Excel file, and returns it as a `FileResponse`.
 
-To run the application, use the following command:
+To run the application, execute the following command from the `backend` directory:
 ```
-$ uvicorn backend.main:app --reload
+$ uvicorn main:app --reload
 ```	
 """
 
@@ -182,8 +182,21 @@ async def upload_excel(
                 except ValueError as e:
                     return {"status": False, "message": str(e)}
             else:
+                session_id = str(uuid.uuid4())
+                db = SessionLocal()
+                db_session = SeatingSession(
+                    session_id=session_id,
+                    uploaded_file=contents,
+                    seating_plan={},
+                    create_at=datetime.now()
+                )
+                db.add(db_session)
+                db.commit()
+                db.refresh(db_session)
+                db.close()
+
                 return {"status": False,
-                        "message": "No valid seating arrangement with the given constraints."}
+                        "message": "No seating arrangement possible with theses compatibility constraints."}
         else:
             return {"status": False, "message": "Error processing file."}
     finally:
@@ -204,6 +217,11 @@ async def download_seating(session_id: str) -> FileResponse:
         db.close()
         raise HTTPException(
             status_code=404, detail="No seating arrangement available.")
+    if not session_record.seating_plan:
+        db.close()
+        raise HTTPException(
+            status_code=204,
+            detail="No seating arrangement possible with theses compatibility constraints.")
 
     files_directory = "files"
     if not os.path.exists(files_directory):
@@ -215,9 +233,6 @@ async def download_seating(session_id: str) -> FileResponse:
     # Generate the Excel file using the stored seating plan
     write_file(file_path, session_record.seating_plan)
 
-    # Optionally, you might want to delete the record after download
-    # db.delete(session_record)
-    # db.commit()
     db.close()
 
     return FileResponse(path=file_path, filename=file_name)
