@@ -9,7 +9,7 @@ based on the constraints provided.
 The app displays the seating arrangement and allows users to download the seating
 plan in Excel format.
 
-To run the Streamlit app, use the following command:
+To run the Streamlit app, execute the following command from the `frontend` directory:
 ```	
     streamlit run app.py
 ```
@@ -17,14 +17,22 @@ To run the Streamlit app, use the following command:
 
 
 import io
+import os
 
 import pandas as pd
 import streamlit as st
 import requests
 from streamlit.components.v1 import html
 
+
+
+# Get the FastAPI base URL from the environment variable or use the default value
+FAST_API_BASE_URL = os.environ.get("FAST_API_BASE_URL", "http://localhost:8000")
+
+
 # Configure Streamlit page
-st.set_page_config(page_title='醐 Seating Arrangement Tool', layout='wide')
+st.set_page_config(
+    page_title='醐 Groups organizator / Seating Arrangement Tool', layout='wide')
 
 # Custom styling
 st.markdown(
@@ -70,23 +78,20 @@ html(
     height=100,
 )
 
-# Cache the FastAPI base URL
-FAST_API_BASE_URL = "http://localhost:8000"
-
 
 def main():
     """
     Main function for the Streamlit app.
     """
-    st.title("✨ Seating Arrangement Tool ✨")
-    st.write(" Organize your seating arrangements with style 🎉 ")
+    st.title("✨ Groups organizator :page_with_curl: Seating Arrangement Tool ✨")
+    st.write(" Organize your groups or your seating arrangements with style 🎉 ")
     st.write("")
 
     # Display help information
     with st.expander("How to Use This Tool"):
         st.markdown("""
-        1. 📁 **Prepare Your Data**: Upload an Excel file containing participant details.
-        2. ⚙️ **Specify Table Capacity**: Indicate how many people should sit at each table.
+        1. 📁 **Prepare Your Data**: Upload an Excel file with names and compatibility constraints.
+        2. ⚙️ **Specify Table (Group) Capacity**: Indicate the number of seats per table.
         3. 🔧 **Generate Seating Plan**: Click the **Generate Seating** button to create the arrangement.
         4. 📥 **Download Plan**: Once generated, download the seating plan in Excel format.
         
@@ -95,7 +100,7 @@ def main():
         - `compatible`: Pairs of compatible persons (two names separated by a colon `:`)
         - `incompatible`: Pairs of incompatible persons (two names separated by a slash `/`)
         """)
-        with open('backend/files/names.xlsx', 'rb') as f:
+        with open('files/names.xlsx', 'rb') as f:
             st.download_button(
                 label='⬇️ Download a Model File',
                 data=f,
@@ -170,6 +175,8 @@ def main():
                         else:
                             st.error(
                                 f"⚠️ Failed: {result.get('message', 'Unknown error')}")
+                            st.write("Please check your data and try again.")
+                            st.dataframe(df_uploaded)
                     else:
                         st.error(
                             f"⚠️ API request failed with status code: {response.status_code}")
@@ -208,6 +215,8 @@ def main():
                     with col4:
                         st.dataframe(st.session_state.get('df_uploaded'))
 
+                    # Add a download button to download the seating arrangement as an Excel file
+                    st.markdown("---")
                     st.download_button(
                         label="⬇️ Download Excel File",
                         data=response.content,
@@ -215,22 +224,22 @@ def main():
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         key='downloadBtn'
                     )
-                    st.markdown("---")
+                    #st.markdown("---")
                     # Add a delete button to remove the generated Excel file
-                    if st.button("🗑️ Delete Seating File", key="deleteBtn"):
-                        with st.spinner("Deleting seating file..."):
-                            del_response = requests.delete(
-                                f"{FAST_API_BASE_URL}/delete/",
-                                params={'session_id': session_id},
-                                timeout=30
-                            )
-                        if del_response.status_code == 200:
-                            result = del_response.json()
-                            st.success(result.get(
-                                "message", "File deleted successfully."))
-                        else:
-                            st.error(
-                                "⚠️ Failed to delete the seating file. Please try again.")
+                    #if st.button("🗑️ Delete Seating File", key="deleteBtn"):
+                    #    with st.spinner("Deleting seating file..."):
+                    #        del_response = requests.delete(
+                    #            f"{FAST_API_BASE_URL}/delete/",
+                    #            params={'session_id': session_id},
+                    #            timeout=30
+                    #        )
+                    #    if del_response.status_code == 200:
+                    #        result = del_response.json()
+                    #        st.success(result.get(
+                    #            "message", "File deleted successfully."))
+                    #    else:
+                    #        st.error(
+                    #            "⚠️ Failed to delete the seating file. Please try again.")
                 else:
                     st.error(
                         "⚠️ Failed to retrieve your seating plan. Please try again.")

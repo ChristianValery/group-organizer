@@ -4,7 +4,7 @@ Description:
     The open space can be used to organize the seating of people according to certain constraints.
 """
 
-from typing import List, Dict, Set
+from typing import List, Dict
 from random import sample
 
 from utils.table import Table
@@ -38,70 +38,31 @@ class Openspace:
 
     def organize_seating(
             self,
-            person_names: Set[str],
-            compatible_pairs: List[Set[str]],
-            incompatible_pairs: List[Set[str]]):
+            partition: List[List[str]]
+    ) -> None:
         """
-        Organizes seating of people in the open space according to the given constraints.
-
+        Organizes seating according to the given partition.
+        
         Parameters:
         -----------
-          - person_names: Set[str] -- names of people to be seated.
-          - compatible_pairs: List[Set[str]] -- pairs who should be seated together.
-          - incompatible_pairs: List[Set[str]] -- pairs who should not be seated together.
+        partition : List[List[str]]
+            A list of groups of people to seat at the tables.
         
         Returns:
         --------
-            None
-        
-        Raises:
-        -------
-            ValueError: if constraints cannot be satisfied due to insufficient seats.
+        None
         """
-        # Check overall capacity.
-        total_seats = sum(table.capacity for table in self.tables)
-        if len(person_names) > total_seats:
-            raise ValueError("Not enough seats available in the open space!")
+        if len(partition) > self.num_tables:
+            raise ValueError("The number of groups exceeds the number of tables.")
+        if any(len(group) > self.table_capacity for group in partition):
+            raise ValueError("A group exceeds the table capacity.")
+        if sum(len(group) for group in partition) > self.num_tables * self.table_capacity:
+            raise ValueError("The total number of people exceeds the total seating capacity.")
 
-        names_to_assign = person_names.copy()
-
-        # Assign incompatible pairs to different tables.
-        for pair in incompatible_pairs:
-            # Unpack without modifying the original set.
-            name_1, name_2 = tuple(pair)
-            available_tables = [
-                table for table in self.tables if table.left_capacity() >= 1]
-            if len(available_tables) < 2:
-                raise ValueError(
-                    "Not enough tables available for incompatible pair assignment!")
-            table_1, table_2 = sample(available_tables, 2)
-            table_1.set_occupant(name_1)
-            table_2.set_occupant(name_2)
-            names_to_assign.remove(name_1)
-            names_to_assign.remove(name_2)
-
-        # Assign compatible pairs to the same table.
-        for pair in compatible_pairs:
-            name_1, name_2 = tuple(pair)
-            available_tables = [
-                table for table in self.tables if table.left_capacity() >= 2]
-            if not available_tables:
-                raise ValueError(
-                    "Not enough seats available for compatible pair assignment!")
-            table = sample(available_tables, 1)[0]
-            table.set_occupants([name_1, name_2])
-            names_to_assign.remove(name_1)
-            names_to_assign.remove(name_2)
-
-        # Assign remaining names.
-        for name in names_to_assign:
-            available_tables = [
-                table for table in self.tables if table.left_capacity() >= 1]
-            if not available_tables:
-                raise ValueError(
-                    "Not enough seats available for remaining assignments!")
-            table = sample(available_tables, 1)[0]
-            table.set_occupant(name)
+        shuffle_tables = sample(self.tables, len(self.tables))
+        # Assign each group to a table
+        for table, group in zip(shuffle_tables, partition):
+            table.set_occupants(group)
 
     def display_seating(self) -> Dict[str, Dict[str, str]]:
         """
