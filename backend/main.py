@@ -65,6 +65,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 from utils.excel_handler import process_file, write_file
+from utils.partition import partition_people
 from utils.openspace import Openspace
 
 
@@ -145,38 +146,44 @@ async def upload_excel(
         success, data = process_file(temp_file.name)
         if success:
             person_names = data["person_names"]
-            compatible_pairs = data["compatible_pairs"]
-            incompatible_pairs = data["incompatible_pairs"]
+            compatible_tuples = data["compatible_tuples"]
+            incompatible_tuples = data["incompatible_tuples"]
+
+            partition = partition_people(
+                person_names, compatible_tuples, incompatible_tuples, table_capacity)
 
             num_tables = len(person_names) // table_capacity + \
                 (1 if len(person_names) % table_capacity else 0)
             open_space = Openspace(num_tables=num_tables,
                                    table_capacity=table_capacity)
 
-            try:
-                open_space.organize_seating(
-                    person_names, compatible_pairs, incompatible_pairs)
-                seating_data = open_space.display_seating()
+            if partition:
+                try:
+                    open_space.organize_seating(partition)
+                    seating_data = open_space.display_seating()
 
-                # Generate a unique session ID
-                session_id = str(uuid.uuid4())
+                    # Generate a unique session ID
+                    session_id = str(uuid.uuid4())
 
-                # Store the data in SQLite
-                db = SessionLocal()
-                db_session = SeatingSession(
-                    session_id=session_id,
-                    uploaded_file=contents, # save binary content of the uploaded file
-                    seating_plan=seating_data, # save seating plan as JSON
-                    create_at=datetime.now() # save the creation time
-                )
-                db.add(db_session)
-                db.commit()
-                db.refresh(db_session)
-                db.close()
+                    # Store the data in SQLite
+                    db = SessionLocal()
+                    db_session = SeatingSession(
+                        session_id=session_id,
+                        uploaded_file=contents, # save binary content of the uploaded file
+                        seating_plan=seating_data, # save seating plan as JSON
+                        create_at=datetime.now() # save the creation time
+                    )
+                    db.add(db_session)
+                    db.commit()
+                    db.refresh(db_session)
+                    db.close()
 
-                return {"status": True, "session_id": session_id}
-            except ValueError as e:
-                return {"status": False, "message": str(e)}
+                    return {"status": True, "session_id": session_id}
+                except ValueError as e:
+                    return {"status": False, "message": str(e)}
+            else:
+                return {"status": False,
+                        "message": "No valid seating arrangement with the given constraints."}
         else:
             return {"status": False, "message": "Error processing file."}
     finally:
@@ -198,8 +205,12 @@ async def download_seating(session_id: str) -> FileResponse:
         raise HTTPException(
             status_code=404, detail="No seating arrangement available.")
 
+    files_directory = "files"
+    if not os.path.exists(files_directory):
+        os.makedirs(files_directory)
+
     file_name = f"seating_arrangement_{session_id}.xlsx"
-    file_path = os.path.join("files", file_name)
+    file_path = os.path.join(files_directory, file_name)
 
     # Generate the Excel file using the stored seating plan
     write_file(file_path, session_record.seating_plan)
