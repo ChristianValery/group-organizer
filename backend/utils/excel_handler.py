@@ -15,7 +15,7 @@ Functions:
     writes the seating arrangement to an Excel file.
 """
 
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Tuple, Union
 import pandas as pd
 
 
@@ -94,23 +94,14 @@ def has_valid_structure(file_path: str) -> bool:
     # Check if all names in the second and third columns are in the first column
     if not all(name in names for name in compatible_names + incompatible_names):
         return False
-    # Check if all names in the second column are unique
-    if len(compatible_names) != len(set(compatible_names)):
-        return False
-    # Check if all names in the third column are unique
-    if len(incompatible_names) != len(set(incompatible_names)):
-        return False
-    # Check if there are no common names between the second and third columns
-    if set(compatible_names).intersection(set(incompatible_names)):
-        return False
     return True
 
 
-def read_file(file_path: str) -> Tuple[Set[str], List[Set[str]], List[Set[str]]]:
+def read_file(file_path: str) -> Tuple[List[str], List[Tuple[str]], List[Tuple[str]]]:
     """
     Reads an Excel file containing the names of people and their compatibility constraints.
-    Returns a tuple containing the set of person names, the list of compatible pairs,
-    and the list of incompatible pairs.
+    Returns a tuple containing the list of person names, the list of compatible tuples,
+    and the list of incompatible tuples.
 
     Parameters:
     -----------
@@ -119,24 +110,24 @@ def read_file(file_path: str) -> Tuple[Set[str], List[Set[str]], List[Set[str]]]
 
     Returns:
     --------
-    Tuple[Set[str], List[Set[str]], List[Set[str]]]
-        A tuple containing the set of person names, the list of compatible pairs,
-        and the list of incompatible pairs.
+    Tuple[List[str], List[Tuple[str]], List[Tuple[str]]]
+        A tuple containing the list of person names, the list of compatible tuples,
+        and the list of incompatible tuples.
     """
     df = pd.read_excel(file_path)
     # Get the list of person names from the first column of the dataframe
-    person_names = set(df.iloc[:, 0][df.iloc[:, 0].notnull()].tolist())
-    # Get list of compatible pairs from the second column of the dataframe
-    compatible_pairs = df.iloc[:, 1][df.iloc[:, 1].notnull()].apply(
-        lambda x: set(x.split(':'))).tolist()
+    person_names = df.iloc[:, 0][df.iloc[:, 0].notnull()].tolist()
+    # Get list of compatible tuples from the second column of the dataframe
+    compatible_tuples = df.iloc[:, 1][df.iloc[:, 1].notnull()].apply(
+        lambda x: tuple(x.split(':'))).tolist()
     # Get list of incompatible pairs from the third column of the dataframe
-    incompatible_pairs = df.iloc[:, 2][df.iloc[:, 2].notnull()].apply(
-        lambda x: set(x.split('/'))).tolist()
-    return person_names, compatible_pairs, incompatible_pairs
+    incompatible_tuples = df.iloc[:, 2][df.iloc[:, 2].notnull()].apply(
+        lambda x: tuple(x.split('/'))).tolist()
+    return person_names, compatible_tuples, incompatible_tuples
 
 
 def process_file(file_path: str) -> \
-        Tuple[bool, Union[Dict[str, Union[Set[str], List[Set[str]]]], str]]:
+        Tuple[bool, Union[Dict[str, Union[List[str], List[Tuple[str]]]], str]]:
     """
     Processes an Excel file containing the names of people and their compatibility constraints.
     Returns a tuple containing a boolean indicating if the file was processed successfully
@@ -157,11 +148,11 @@ def process_file(file_path: str) -> \
         return False, "The file is not an Excel file."
     if not has_valid_structure(file_path):
         return False, "The Excel file does not have a valid structure."
-    person_names, compatible_pairs, incompatible_pairs = read_file(file_path)
+    person_names, compatible_tuples, incompatible_tuples = read_file(file_path)
     return True, {
         "person_names": person_names,
-        "compatible_pairs": compatible_pairs,
-        "incompatible_pairs": incompatible_pairs
+        "compatible_tuples": compatible_tuples,
+        "incompatible_tuples": incompatible_tuples
     }
 
 
