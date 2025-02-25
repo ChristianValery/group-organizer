@@ -32,7 +32,7 @@ FAST_API_BASE_URL = os.environ.get("FAST_API_BASE_URL", "http://localhost:8000")
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title='醐 Groups organizator / Seating Arrangement Tool', layout='wide')
+    page_title='醐 Group organizer / Seating Arrangement Tool', layout='wide')
 
 # Custom styling
 st.markdown(
@@ -83,7 +83,7 @@ def main():
     """
     Main function for the Streamlit app.
     """
-    st.title("✨ Groups organizator :page_with_curl: Seating Arrangement Tool ✨")
+    st.title("✨ Group organizer :page_with_curl: Seating Arrangement Tool ✨")
     st.write(" Organize your groups or your seating arrangements with style 🎉 ")
     st.write("")
 
