@@ -4,13 +4,14 @@ It contains unit tests for the functions in the module.
 
 To run the test suite, execute the following command:
 ```
-$ python -m unittest tests.test_excel_handler
+python -m unittest tests.test_excel_handler
 ```
 """
 
+
+import unittest
 import os
 import tempfile
-import unittest
 import pandas as pd
 
 from backend.utils.excel_handler import (
@@ -22,139 +23,186 @@ from backend.utils.excel_handler import (
 )
 
 
-class TestExcelModule(unittest.TestCase):
-    """Unit tests for the 'excel_handler' module."""
+class TestExcelUtils(unittest.TestCase):
+    """
+    Test suite for the functions in the excel_handler module.
+    """
 
     def setUp(self):
-        """This method is called before each test."""
-        # Create a temporary directory to store our test Excel files.
-        self.test_dir = tempfile.TemporaryDirectory()
-        self.addCleanup(self.test_dir.cleanup)
+        # Track temporary files created during tests for cleanup.
+        self.temp_files = []
 
-    def create_excel_file(self, df: pd.DataFrame, filename: str = "temp.xlsx") -> str:
+    def tearDown(self):
+        # Remove all temporary files created.
+        for file_path in self.temp_files:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        self.temp_files = []
+
+    def _create_temp_excel_file(self, df: pd.DataFrame, suffix=".xlsx") -> str:
         """
-        Helper function to write a DataFrame to an Excel file in the temporary directory.
-        Returns the file path.
+        Helper method to write a DataFrame to a temporary Excel file.
+        Returns the path to the created file.
         """
-        file_path = os.path.join(self.test_dir.name, filename)
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        file_path = tmp.name
+        # Close the file so pandas can write to it (especially on Windows).
+        tmp.close()
         df.to_excel(file_path, index=False)
+        self.temp_files.append(file_path)
         return file_path
 
     def test_is_excel_file(self):
-        """Test the 'is_excel_file' function."""
-        self.assertTrue(is_excel_file("example.xlsx"))
-        self.assertFalse(is_excel_file("example.txt"))
+        """
+        Test that is_excel_file returns True only for files ending with '.xlsx'.
+        """
+        self.assertTrue(is_excel_file("data.xlsx"))
+        self.assertFalse(is_excel_file("data.xls"))
+        self.assertFalse(is_excel_file("data.txt"))
 
     def test_has_valid_structure_valid(self):
         """
-        Test the 'has_valid_structure' function with a valid Excel file.
+        Test that a correctly structured Excel file is recognized as valid.
         """
-        # Create a DataFrame with the valid structure.
         data = {
-            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-            "compatible": ["Bob:Charlie", None, None, None, None],
-            "incompatible": [None, "David/Eve", None, None, None],
+            "name": ["Alice", "Bob", "Charlie"],
+            "compatible": ["Alice:Bob", pd.NA, pd.NA],
+            "incompatible": ["Alice/Charlie", pd.NA, "Alice/Charlie"]
         }
         df = pd.DataFrame(data)
-        file_path = self.create_excel_file(df, "valid.xlsx")
+        file_path = self._create_temp_excel_file(df)
         self.assertTrue(has_valid_structure(file_path))
 
     def test_has_valid_structure_invalid_wrong_columns(self):
         """
-        Test the 'has_valid_structure' function with an Excel file with invalid columns.
+        Test that a file with an incorrect number of columns is invalid.
         """
-        # Create a DataFrame with only 2 columns.
         data = {
             "name": ["Alice", "Bob"],
-            "compatible": ["Bob:Charlie", None],
+            "compatible": ["Alice:Bob", pd.NA]
+            # Missing the 'incompatible' column.
         }
         df = pd.DataFrame(data)
-        file_path = self.create_excel_file(df, "invalid_columns.xlsx")
+        file_path = self._create_temp_excel_file(df)
         self.assertFalse(has_valid_structure(file_path))
 
-    def test_has_valid_structure_invalid_wrong_format(self):
+    def test_has_valid_structure_invalid_wrong_column_names(self):
         """
-        Test the 'has_valid_structure' function with an Excel file with invalid format.
+        Test that a file with wrong column names is invalid.
         """
-        # Create a DataFrame where the 'compatible' column does not use a colon.
         data = {
-            "name": ["Alice", "Bob", "Charlie"],
-            "compatible": ["Bob-Charlie", None, None],  # Wrong delimiter here.
-            "incompatible": [None, None, None],
+            "Name": ["Alice", "Bob"],
+            "Compatible": ["Alice:Bob", pd.NA],
+            "Incompatible": ["Alice/Charlie", pd.NA]
         }
         df = pd.DataFrame(data)
-        file_path = self.create_excel_file(df, "invalid_format.xlsx")
+        file_path = self._create_temp_excel_file(df)
+        self.assertFalse(has_valid_structure(file_path))
+
+    def test_has_valid_structure_invalid_format_in_columns(self):
+        """
+        Test that a file with improperly formatted compatible/incompatible values is invalid.
+        """
+        data = {
+            "name": ["Alice", "Bob"],
+            "compatible": ["Alice", pd.NA],
+            "incompatible": ["Alice/Charlie", pd.NA]
+        }
+        df = pd.DataFrame(data)
+        file_path = self._create_temp_excel_file(df)
         self.assertFalse(has_valid_structure(file_path))
 
     def test_read_file(self):
-        """Test the 'read_file' function."""
+        """
+        Test that read_file returns the expected tuples from a valid Excel file.
+        """
         data = {
-            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-            "compatible": ["Bob:Charlie", None, None, None, None],
-            "incompatible": [None, "David/Eve", None, None, None],
+            "name": ["Alice", "Bob", "Charlie"],
+            "compatible": ["Alice:Bob", pd.NA, pd.NA],
+            "incompatible": ["Alice/Charlie", pd.NA, "Alice/Charlie"]
         }
         df = pd.DataFrame(data)
-        file_path = self.create_excel_file(df, "read.xlsx")
-        person_names, compatible_pairs, incompatible_pairs = read_file(
+        file_path = self._create_temp_excel_file(df)
+        person_names, compatible_tuples, incompatible_tuples = read_file(
             file_path)
+        self.assertCountEqual(person_names, ["Alice", "Bob", "Charlie"])
+        self.assertEqual(compatible_tuples, [("Alice", "Bob")])
+        self.assertEqual(incompatible_tuples, [
+                         ("Alice", "Charlie"), ("Alice", "Charlie")])
 
-        expected_names = {"Alice", "Bob", "Charlie", "David", "Eve"}
-        self.assertEqual(person_names, expected_names)
-        self.assertEqual(len(compatible_pairs), 1)
-        self.assertEqual(compatible_pairs[0], {"Bob", "Charlie"})
-        self.assertEqual(len(incompatible_pairs), 1)
-        self.assertEqual(incompatible_pairs[0], {"David", "Eve"})
-
-    def test_process_file_valid(self):
-        """Test the 'process_file' function with a valid Excel file."""
-        data = {
-            "name": ["Alice", "Bob", "Charlie", "David", "Eve"],
-            "compatible": ["Bob:Charlie", None, None, None, None],
-            "incompatible": [None, "David/Eve", None, None, None],
-        }
-        df = pd.DataFrame(data)
-        file_path = self.create_excel_file(df, "process_valid.xlsx")
-        success, result = process_file(file_path)
-
-        self.assertTrue(success)
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result["person_names"], {
-                         "Alice", "Bob", "Charlie", "David", "Eve"})
-        self.assertEqual(len(result["compatible_pairs"]), 1)
-        self.assertEqual(result["compatible_pairs"][0], {"Bob", "Charlie"})
-        self.assertEqual(len(result["incompatible_pairs"]), 1)
-        self.assertEqual(result["incompatible_pairs"][0], {"David", "Eve"})
-
-    def test_process_file_invalid(self):
+    def test_process_file_invalid_extension(self):
         """
-        Test the 'process_file' function with an invalid Excel file.
+        Test that process_file returns an error for a non-Excel file.
         """
-        # Create a dummy file with an invalid extension.
-        file_path = os.path.join(self.test_dir.name, "invalid.txt")
-        with open(file_path, "w", encoding="utf8") as f:
-            f.write("This is not an Excel file.")
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".txt")
+        file_path = tmp.name
+        tmp.close()
+        self.temp_files.append(file_path)
         success, result = process_file(file_path)
         self.assertFalse(success)
-        self.assertIsInstance(result, str)
+        self.assertEqual(result, "The file is not an Excel file.")
+
+    def test_process_file_invalid_structure(self):
+        """
+        Test that process_file returns an error for an Excel file with an invalid structure.
+        """
+        data = {
+            "name": ["Alice", "Bob"],
+            "compatible": ["Alice:Bob", pd.NA]
+            # Missing the 'incompatible' column.
+        }
+        df = pd.DataFrame(data)
+        file_path = self._create_temp_excel_file(df)
+        success, result = process_file(file_path)
+        self.assertFalse(success)
+        self.assertEqual(
+            result, "The Excel file does not have a valid structure.")
+
+    def test_process_file_valid(self):
+        """
+        Test that process_file successfully processes a correctly structured Excel file.
+        """
+        data = {
+            "name": ["Alice", "Bob", "Charlie"],
+            "compatible": ["Alice:Bob", pd.NA, pd.NA],
+            "incompatible": ["Alice/Charlie", pd.NA, "Alice/Charlie"]
+        }
+        df = pd.DataFrame(data)
+        file_path = self._create_temp_excel_file(df)
+        success, result = process_file(file_path)
+        self.assertTrue(success)
+        expected = {
+            "person_names": ["Alice", "Bob", "Charlie"],
+            "compatible_tuples": [("Alice", "Bob")],
+            "incompatible_tuples": [("Alice", "Charlie"), ("Alice", "Charlie")]
+        }
+        self.assertEqual(result, expected)
 
     def test_write_file(self):
-        """Test the 'write_file' function."""
-        # Create a sample display dictionary.
-        display_dict = {
-            "Table1": {"Seat1": "Alice", "Seat2": "Bob"},
-            "Table2": {"Seat1": "Charlie", "Seat2": "David"},
+        """
+        Test that write_file writes the seating arrangement correctly to an Excel file.
+        """
+        display_dictionary = {
+            "Table_1": {"Seat_1": "Alice", "Seat_2": "Bob"},
+            "Table_2": {"Seat_1": "Charlie", "Seat_2": ""}
         }
-        file_path = os.path.join(self.test_dir.name, "write.xlsx")
-        write_file(file_path, display_dict)
-
-        # Read back the written Excel file.
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx")
+        file_path = tmp.name
+        tmp.close()
+        self.temp_files.append(file_path)
+        write_file(file_path, display_dictionary)
+        # Read the written file into a DataFrame.
         df = pd.read_excel(file_path)
-        # The DataFrame should have columns corresponding to the dictionary keys.
-        self.assertListEqual(list(df.columns), ["Table1", "Table2"])
-        # Check that the data matches.
-        self.assertEqual(df["Table1"].tolist(), ["Alice", "Bob"])
-        self.assertEqual(df["Table2"].tolist(), ["Charlie", "David"])
+        # Verify that the expected columns are present.
+        self.assertIn("Table_1", df.columns)
+        self.assertIn("Table_2", df.columns)
+        # The DataFrame was built using lists of the dictionary values.
+        # Use fillna('') to convert NaN values to empty strings for comparison.
+        table1 = df["Table_1"].fillna('').tolist()
+        table2 = df["Table_2"].fillna('').tolist()
+        self.assertEqual(table1, ["Alice", "Bob"])
+        self.assertEqual(table2, ["Charlie", ""])
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
