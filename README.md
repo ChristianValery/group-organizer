@@ -94,4 +94,6 @@ Contributions are welcome! Please follow these steps:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License, a permissive open source license. This means you are free to use, modify, merge, distribute, and even sell copies of the software, provided that you include the original copyright notice and this permission notice in all copies or substantial portions of the software. The license also makes it clear that the software is provided "as is," without any warranty—neither expressed nor implied.
+
+For the complete terms, please view it online at [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT).
