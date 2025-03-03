@@ -1,29 +1,27 @@
 # Group Organizer / Seating Arrangement Tool
 
-The **Group Organizer** (or **Seating Arrangement Tool**) is a web application designed to help users efficiently generate seating plans or group arrangements based on uploaded Excel files containing names and compatibility constraints. The tool allows users to specify the number of seats per table and downloads the generated seating plan as an Excel file.
-
-The frontend is built with Streamlit for a simple and interactive user interface, while the backend API is built using FastAPI for robust server-side operations.
+The **Group Organizer / Seating Arrangement Tool** is a web application designed to streamline the process of creating seating arrangements or group assignments based on user-provided data. By leveraging advanced algorithms, it efficiently generates optimal seating plans that satisfy specified constraints and requirements.
 
 ## Table of Contents
 
-- [Features](#features)
-- [Directory Structure](#directory-structure)
+- [Key Features](#key-features)
+- [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
-- [Usage](#usage)
+- [Usage Guide](#usage-guide)
 - [Dependencies](#dependencies)
 - [Contributing](#contributing)
 - [License](#license)
-- [Underlying Mathematical Model](#underlying-mathematical-model)
+- [Mathematical Model](#mathematical-model)
 
-## Features
+## Key Features
 
-- Upload an Excel (`.xlsx`) file containing person names and compatibility constraints.
-- Define the number of seats per table/group.
-- Generate seating arrangements that can be downloaded as Excel files.
-- Frontend built with Streamlit for a simple and interactive user interface.
-- Backend API built using FastAPI for robust server-side operations.
+- **Excel File Upload**: Effortlessly upload `.xlsx` files containing attendees' names and compatibility constraints.
+- **Customizable Seating**: Specify the number of seats per table/group to tailor the arrangement to your needs.
+- **Automated Arrangement**: Generate seating plans that respect all constraints, formatted for easy implementation.
+- **User-Friendly Interface**: Built with Streamlit for an interactive and intuitive frontend experience.
+- **Robust Backend**: FastAPI ensures efficient and scalable backend operations.
 
-## Directory Structure
+## Project Structure
 
 ```
 group-organizer/
@@ -34,10 +32,9 @@ group-organizer/
 │   ├── database/
 │   │   └── [SQLite database files]
 │   ├── files/
-│   │   └── [Generated Excel files for seating plans]
+│   │   └── [Generated Excel files]
 │   └── utils/
 │       ├── excel_handler.py
-│       ├── openspace.py
 │       ├── partition.py
 │       ├── seat.py
 │       └── table.py
@@ -57,8 +54,8 @@ group-organizer/
 
 ### Prerequisites
 
-- Docker and Docker Compose
-- Python 3.12.7 or higher
+- Install **Docker** and **Docker Compose**.
+- Ensure you have **Python 3.12.7** or higher.
 
 ### Installation
 
@@ -67,80 +64,39 @@ group-organizer/
    git clone https://github.com/ChristianValery/group-organizer.git
    cd group-organizer
    ```
-
 2. Build and run the application using Docker Compose:
    ```bash
    docker-compose up --build
    ```
 
-## Usage
+## Usage Guide
 
-1. Navigate to `http://localhost:8501` in your web browser.
-2. Upload your `.xlsx` file containing the person names and constraints.
-3. Specify the number of seats per table/group.
-4. Generate and download the seating plan in Excel format.
+1. Open your web browser and navigate to `http://localhost:8501`.
+2. Upload your `.xlsx` file containing attendee information and seating constraints.
+3. Define the desired number of seats per table or group.
+4. Generate the seating plan and download it in Excel format.
 
 ## Dependencies
 
-- **Backend:** FastAPI, [additional libraries listed in `backend/requirements.txt`]
-- **Frontend:** Streamlit, [additional libraries listed in `frontend/requirements.txt`]
+- **Backend**: FastAPI, along with other libraries listed in `backend/requirements.txt`.
+- **Frontend**: Streamlit, along with other libraries listed in `frontend/requirements.txt`.
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
+We welcome contributions to enhance this tool. Here’s how you can help:
 
 1. Fork the repository.
-2. Create a new feature branch (`git checkout -b feature/YourFeature`).
-3. Commit your changes (`git commit -am 'Add new feature'`).
-4. Push to the branch (`git push origin feature/YourFeature`).
-5. Open a Pull Request.
+2. Create a branch for your feature (`git checkout -b feature/YourFeature`).
+3. Commit your modifications (`git commit -am 'Add feature'`).
+4. Push to your branch (`git push origin feature/YourFeature`).
+5. Submit a Pull Request for review.
 
 ## License
 
-This project is licensed under the MIT License, a permissive open source license. This means you are free to use, modify, merge, distribute, and even sell copies of the software, provided that you include the original copyright notice and this permission notice in all copies or substantial portions of the software. The license also makes it clear that the software is provided "as is," without any warranty—neither expressed nor implied.
+This project is licensed under the MIT License, allowing for flexibility in use and distribution. You are free to use, modify, distribute, and even sell copies of the software, provided that proper credit is given. For full details, refer to [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT).
 
-For the complete terms, please view it online at [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT).
+## Mathematical Model
 
-## Underlying Mathematical Model
+The seating arrangement problem is modeled as a Constraint Satisfaction Problem (CSP) and solved using the CP-SAT solver from Google OR-Tools. The solution involves partitioning individuals into groups based on given constraints, ensuring maximum compatibility and satisfying all requirements.
 
-Our approach to solving the seating arrangement problem (or group organization problem) were to formulate it as a constraint satisfaction problem (CSP) and solve it using the CP-SAT solver from Google OR-Tools.
-
-Given a set $P=\{p_{0}, p_{1}, \dots, p_{n-1}\}$ of $n$ persons and $m$ the maximum number of persons that can be seated at a table, the goal is to partition $P$ into $k$ groups $G=\{G_{0}, G_{1}, \dots, G_{k-1}\}$ such that each group $G_{i}$ contains at most $m$ persons and the compatibility constraints are satisfied.
-
-We assume that $m<n$ and consider the euclidean division of $n$, that is, $n = q \times m + r$ where $q$ is the quotient and $r$ is the remainder. Then the number of groups $k$ is then given by
-\[
-   k =%
-   \begin{cases}
-      q + 1 & \text{if } r \neq 0, \\
-      q & \text{if } r = 0.
-   \end{cases}
-\]
-Let $C$ be a set of pairs $(p_{i}, p_{j})$ of persons that are compatible with each other (must be seated at the same table), and $I$ be a set of pairs $(p_{i}, p_{j})$ of persons that are incompatible with each other (must not be seated at the same table).
-
-The problem can be formulated as an integer linear programming (ILP) problem as follows:
-
-#### Decision Variables
-
-Let $x_{ij}$ be a binary variable that is equal to 1 if person $p_{i}$ is in group $G_{j}$, and 0 otherwise.
-
-#### Constraints
-
-1. Each person $p_{i}$ must be assigned to exactly one group $G_{j}$:
-\[
-   \sum_{j=0}^{k-1} x_{ij} = 1 \quad \text{for all } i \in \{0, 1, \dots, n-1\}.
-\]
-
-2. Each group $G_{j}$ must contain at least one person and at most $m$ persons:
-\[
-   1 \leq \sum_{i=0}^{n-1} x_{ij} \leq m \quad \text{for all } j \in \{0, 1, \dots, k-1\}.
-\]
-
-3. Persons $p_{i}$ and $p_{j}$ that are compatible must be assigned to the same group:
-\[
-   x_{ij} = x_{ji} \quad \text{for all } (p_{i}, p_{j}) \in C.
-\]
-
-4. Persons $p_{i}$ and $p_{j}$ that are incompatible must not be assigned to the same group:
-\[
-   x_{ij} + x_{ji} \leq 1 \quad \text{for all } (p_{i}, p_{j}) \in I.
-\]
+For a detailed description of the mathematical approach and constraints, please refer to the complete model section in the documentation.
