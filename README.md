@@ -98,5 +98,3 @@ This project is licensed under the MIT License, allowing for flexibility in use 
 ## Mathematical Model
 
 The seating arrangement problem is modeled as a Constraint Satisfaction Problem (CSP) and solved using the CP-SAT solver from Google OR-Tools. The solution involves partitioning individuals into groups based on given constraints, ensuring maximum compatibility and satisfying all requirements.
-
-For a detailed description of the mathematical approach and constraints, please refer to the complete model section in the documentation.
