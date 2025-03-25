@@ -25,14 +25,15 @@ import requests
 from streamlit.components.v1 import html
 
 
-
 # Get the FastAPI base URL from the environment variable or use the default value
-FAST_API_BASE_URL = os.environ.get("FAST_API_BASE_URL", "http://localhost:8000")
-
+FAST_API_BASE_URL = os.environ.get(
+    "FAST_API_BASE_URL", "http://localhost:8000")
 
 # Configure Streamlit page
 st.set_page_config(
-    page_title='醐 Group organizer / Seating Arrangement Tool', layout='wide')
+    page_title='醐 Group organizer / Seating Arrangement Tool',
+    layout='wide'
+)
 
 # Custom styling
 st.markdown(
@@ -67,28 +68,28 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Add a custom icon
-html(
-    """
-    <div style="text-align: center; padding: 20px;">
-        <i class="fas fa-chairs" style="font-size: 4rem; color: #4CAF50;"></i>
-    </div>
-    """,
-    width=100,
-    height=100,
-)
-
 
 def main():
     """
-    Main function for the Streamlit app.
+    Main function for the Streamlit app with a sidebar and two pages.
     """
-    st.title("✨ Group organizer :page_with_curl: Seating Arrangement Tool ✨")
-    st.write(" Organize your groups or your seating arrangements with style 🎉 ")
-    st.write("")
+    # Add a custom icon at the top
+    html(
+        """
+        <div style="text-align: center; padding: 20px;">
+            <i class="fas fa-chairs" style="font-size: 4rem; color: #4CAF50;"></i>
+        </div>
+        """,
+        width=100,
+        height=100,
+    )
 
-    # Display help information
-    with st.expander("How to Use This Tool"):
+    # Sidebar section selector
+    section = st.sidebar.selectbox(
+        "Choose a section", ["How to Use This Tool", "Seating Arrangement Tool"])
+
+    if section == "How to Use This Tool":
+        st.title("How to Use This Tool")
         st.markdown("""
         1. 📁 **Prepare Your Data**: Upload an Excel file with names and compatibility constraints.
         2. ⚙️ **Specify Table (Group) Capacity**: Indicate the number of seats per table.
@@ -109,86 +110,71 @@ def main():
                 key='sample_fileBtn'
             )
 
-    # File Upload Section
-    with st.expander("📁 Upload Data", expanded=True):
-        st.write("Upload an Excel file with compatibility constraints.")
+    elif section == "Seating Arrangement Tool":
+        st.title("Seating Arrangement Tool")
+        st.write(
+            "Upload your Excel file and set the table capacity to generate a seating arrangement.")
 
-        # File upload widget
+        # File Upload
         uploaded_file = st.file_uploader(
-            " ",
+            "Upload Excel File",
             type=['xlsx', 'xls'],
-            key='file_uploader',
-            help="Upload your Excel file containing names and compatibility constraints"
+            key='file_uploader'
         )
 
-        st.write("")
-        # Table Capacity Section
+        # Table Capacity
         if 'table_capacity' not in st.session_state:
             st.session_state['table_capacity'] = 4
+        table_capacity = st.number_input(
+            "Number of Seats per Table",
+            min_value=2,
+            value=st.session_state['table_capacity'],
+            key='capacityInput'
+        )
+        st.session_state['table_capacity'] = table_capacity
 
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.write(" ")
-            st.write(" ")
-            st.markdown("**Number of Seats per Table**")
-        with col2:
-            table_capacity = st.number_input(
-                " ",
-                min_value=2,
-                value=st.session_state['table_capacity'],
-                help="Number of people per table",
-                key='capacityInput'
-            )
-            st.session_state['table_capacity'] = table_capacity
-
-        st.write("")
-        # Display the Generate Seating button once the file is uploaded.
+        # Generate Seating Button
         if uploaded_file:
-            if st.button("Generate Seating"):
+            if st.button("Generate Seating", key='generateBtn'):
                 try:
-                    # Read the uploaded file into a DataFrame
                     df_uploaded = pd.read_excel(uploaded_file)
                     df_uploaded = df_uploaded.fillna("")
                     df_uploaded = df_uploaded.set_index("name")
-
-                    # Prepare multipart form data for FastAPI
                     data = {'table_capacity': table_capacity}
-                    # Use getvalue() to obtain the binary content of the uploaded file
                     files = {'file': uploaded_file.getvalue()}
-
-                    with st.spinner("✨ Processing your request..."):
+                    with st.spinner("Processing your request..."):
                         response = requests.post(
                             f"{FAST_API_BASE_URL}/upload/",
                             params=data,
                             files=files,
                             timeout=30
                         )
-
                     if response.status_code == 200:
                         result = response.json()
                         if result.get('status'):
                             session_id = result.get('session_id')
-                            st.success("✨ Upload successful!")
+                            st.success("Upload successful!")
                             st.session_state['session_id'] = session_id
-                            # store for later display
                             st.session_state['df_uploaded'] = df_uploaded
                         else:
                             st.error(
-                                f"⚠️ Failed: {result.get('message', 'Unknown error')}")
+                                f"Failed: {result.get('message', 'Unknown error')}")
                             st.write("Please check your data and try again.")
                             st.dataframe(df_uploaded)
                     else:
                         st.error(
-                            f"⚠️ API request failed with status code: {response.status_code}")
+                            f"API request failed with status code: {response.status_code}")
                 except requests.exceptions.Timeout:
-                    st.error("⏳ The request has timed out. Please try again.")
+                    st.error("The request has timed out. Please try again.")
                 except requests.exceptions.RequestException as e:
-                    st.error(f"⚠️ An error occurred: {str(e)}")
+                    st.error(f"An error occurred: {str(e)}")
 
-    # Once the seating is generated (session_id exists), display the seating arrangement expander.
-    if st.session_state.get('session_id'):
-        session_id = st.session_state['session_id']
-        with st.expander("⬇️ Seating Arrangement", expanded=True):
+        # Visual separator
+        st.markdown("---")
+
+        # Display Seating Arrangement if generated
+        if 'session_id' in st.session_state:
+            session_id = st.session_state['session_id']
             try:
                 with st.spinner("Fetching your seating arrangement..."):
                     response = requests.get(
@@ -196,27 +182,20 @@ def main():
                         params={'session_id': session_id},
                         timeout=30
                     )
-
                 if response.status_code == 200:
-                    st.success("✨ Seating plan generated successfully!")
-                    # Read the seating arrangement from the response content
+                    st.success("Seating plan generated successfully!")
                     seating_file = io.BytesIO(response.content)
                     df_seating = pd.read_excel(seating_file)
                     df_seating["Seats"] = [
                         "Seat " + str(i+1) for i in range(len(df_seating))]
                     df_seating = df_seating.set_index("Seats")
                     df_seating = df_seating.fillna("")
-
                     st.write("Here is your seating arrangement:")
-
                     col3, col4 = st.columns([2, 1])
                     with col3:
                         st.dataframe(df_seating)
                     with col4:
                         st.dataframe(st.session_state.get('df_uploaded'))
-
-                    # Add a download button to download the seating arrangement as an Excel file
-                    st.markdown("---")
                     st.download_button(
                         label="⬇️ Download Excel File",
                         data=response.content,
@@ -224,29 +203,13 @@ def main():
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                         key='downloadBtn'
                     )
-                    #st.markdown("---")
-                    # Add a delete button to remove the generated Excel file
-                    #if st.button("🗑️ Delete Seating File", key="deleteBtn"):
-                    #    with st.spinner("Deleting seating file..."):
-                    #        del_response = requests.delete(
-                    #            f"{FAST_API_BASE_URL}/delete/",
-                    #            params={'session_id': session_id},
-                    #            timeout=30
-                    #        )
-                    #    if del_response.status_code == 200:
-                    #        result = del_response.json()
-                    #        st.success(result.get(
-                    #            "message", "File deleted successfully."))
-                    #    else:
-                    #        st.error(
-                    #            "⚠️ Failed to delete the seating file. Please try again.")
                 else:
                     st.error(
-                        "⚠️ Failed to retrieve your seating plan. Please try again.")
+                        "Failed to retrieve your seating plan. Please try again.")
             except requests.exceptions.Timeout:
-                st.error("⏳ The request has timed out. Please try again.")
+                st.error("The request has timed out. Please try again.")
             except requests.exceptions.RequestException as e:
-                st.error(f"⚠️ An error occurred: {str(e)}")
+                st.error(f"An error occurred: {str(e)}")
 
 
 if __name__ == "__main__":
